@@ -2,6 +2,7 @@ const express  = require('express')
 const bodyParser = require('body-parser');
 
 Web3 = require('web3')
+let web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
 contract = require('truffle-contract')
 voting_artifacts = require('./build/contracts/Voting.json')
 var Voting = contract(voting_artifacts);
@@ -20,7 +21,11 @@ if (typeof web3 !== 'undefined') {
 
 
 const app = express();
-app.use(bodyParser.urlencoded({extended:false}));
+// parse application/x-www-form-urlencoded
+app.use(bodyParser.urlencoded({ extended: false }))
+
+// parse application/json
+app.use(bodyParser.json())
 
 app.use(function(req,res,next){
     res.setHeader('Content-Type','text/json')
@@ -92,8 +97,12 @@ app.post('/voterDetails', (req,res) => {
 
 app.post('/allCandidates', (req,res) => {
     Voting.deployed().then(function(contractInstance) {
-        contractInstance.allCandidates.call().then(function(candidateArray) {
-            res.status(200).end(JSON.stringify(candidateArray,null,2));
+        contractInstance.allCandidates.call().then(function(candidateArray) {            
+            var candidates = [];  
+            for (var index = 0; index < candidateArray.length; index++) {
+                candidates[index] = web3.toUtf8(candidateArray[index]);                
+            }
+            res.status(200).end(JSON.stringify(candidates,null,2));
         });
     });
 });
@@ -101,14 +110,16 @@ app.post('/allCandidates', (req,res) => {
 
 app.post('/addCandidate', (req,res) => {
     Voting.deployed().then(function(contractInstance) {
+        console.log(req.body);
         contractInstance.addCandidate(req.body.name,
         {
+            gas: 140000,
             from: web3.eth.accounts[0]
-        }).then(function (v) {      
+        }).then(function (v) {
         res.setHeader('Content-Type','text/json'),
         res.status(200).end(JSON.stringify(v,null,2)).catch((error) => {
             assert.isNotOk(error,'Promise error');
-            });;
+            });
         });
     });            
 });
@@ -171,16 +182,6 @@ app.post('/getBalance', (req,res) => {
         });
     });
 })
-
-app.post('/addCandidate', (req,res) => {    
-    Voting.deployed().then(function(contractInstance) {
-        contractInstance.addCandidate.call(req.body.name, function(error, result) {
-            res.setHeader('Content-Type','text/json'),
-            res.status(200).end(JSON.stringify(result,null,2));
-        });
-    });
-});
-
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
