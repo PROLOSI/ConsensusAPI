@@ -52,11 +52,10 @@ contract Voting {
 
       }
 
- function addEvento(uint idEvento, bytes32 name, uint maxVotes, bytes32[] candidateNames) {
+ function addEvento(uint idEvento, bytes32 name, uint maxVotes) {
      Eventos[idEvento].IdEvento = idEvento;
      Eventos[idEvento].name = name;
      Eventos[idEvento].maxAllowedVotes = maxVotes;
-     Eventos[idEvento].candidateList = candidateNames;
   }
 
   function addCandidate(uint idEvento, bytes32 name) {  

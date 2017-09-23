@@ -122,7 +122,6 @@ app.post('/addEvento', (req,res) => {
     Voting.deployed().then(function(contractInstance) {
         console.log(req.body);
         contractInstance.addCandidate(req.body.idEvento, req.body.name, req.body.maxVotos,
-        req.body.candidatos,
         {
             gas: 140000,
             from: web3.eth.accounts[0]
