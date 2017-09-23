@@ -4,8 +4,6 @@ contract Voting {
 
   // We use the struct datatype to store the voter information.
   struct voter {
-    bytes32 name;
-    bytes32 password;
     bytes32 email;
     address voterAddress; // The address of the voter
     uint tokensBought;    // The total no. of tokens this voter owns
@@ -19,6 +17,15 @@ contract Voting {
      */
   }
 
+  struct Evento {
+    uint IdEvento;
+    uint maxAllowedVotes;
+    uint totalVotes;
+    bytes32 name;
+    bytes32[] candidateList;
+    mapping (bytes32 => uint)  votesReceived;
+  }
+
   /* mapping is equivalent to an associate array or hash
    The key of the mapping is candidate name stored as type bytes32 and value is
    an unsigned integer which used to store the vote count
@@ -30,9 +37,9 @@ contract Voting {
    instead to store the list of candidates
    */
 
-  mapping (bytes32 => uint) public votesReceived;
-
-  bytes32[] public candidateList;
+  mapping (uint => Evento) public Eventos;
+  mapping (uint => uint) public maxVotes;
+  
 
   uint public totalTokens; // Total no. of tokens available for this election
   uint public balanceTokens; // Total no. of tokens still available for purchase
@@ -41,43 +48,54 @@ contract Voting {
   /* When the contract is deployed on the blockchain, we will initialize
    the total number of tokens for sale, cost per token and all the candidates
    */
-  function Voting(uint tokens, uint pricePerToken, bytes32[] candidateNames) {
-    candidateList = candidateNames;
-    totalTokens = tokens;
-    balanceTokens = tokens;
-    tokenPrice = pricePerToken;
+  function Voting() {
+
+      }
+
+ function addEvento(uint idEvento, bytes32 name, uint maxVotes, bytes32[] candidateNames) {
+     Eventos[idEvento].IdEvento = idEvento;
+     Eventos[idEvento].name = name;
+     Eventos[idEvento].maxAllowedVotes = maxVotes;
+     Eventos[idEvento].candidateList = candidateNames;
   }
 
-  function addCandidate(bytes32 name) {  
-     uint index = indexOfCandidate(name);
-     require(index == uint(-1));  
+  function addCandidate(uint idEvento, bytes32 name) {  
+     uint index = indexOfCandidate(idEvento, name);
+     bytes32[] candidateList = Eventos[idEvento].candidateList; 
+     require(index == uint(-1));    
      candidateList.push(name);
+     Eventos[idEvento].candidateList = candidateList;
   }
 
-  function totalVotesFor(bytes32 candidate) constant returns (uint) {
-    return votesReceived[candidate];
+  function totalVotesFor(uint idEvento, bytes32 candidate) constant returns (uint) {
+     return Eventos[idEvento].votesReceived[candidate];
   }
 
   /* Instead of just taking the candidate name as an argument, we now also
    require the no. of tokens this voter wants to vote for the candidate
    */
-  function voteForCandidate(bytes32 candidate, uint votesInTokens, address _address) {
-    uint index = indexOfCandidate(candidate);
+  function voteForCandidate(uint idEvento, bytes32 candidate, uint votesInTokens, address _address) {
+    uint index = indexOfCandidate(idEvento, candidate);
+    uint max = indexOfmaxVotes(idEvento);
     if (index == uint(-1)) throw;
+    if (max == uint(-1)) throw;
 
     // msg.sender gives us the address of the account/voter who is trying
     // to call this function
+     bytes32[] candidateList = Eventos[idEvento].candidateList; 
     if (voterInfo[_address].tokensUsedPerCandidate.length == 0) {
       for(uint i = 0; i < candidateList.length; i++) {
         voterInfo[_address].tokensUsedPerCandidate.push(0);
       }
     }
+    if(voterInfo[_address].tokensUsedPerCandidate[index] >= 1) throw;
 
     // Make sure this voter has enough tokens to cast the vote
     uint availableTokens = voterInfo[_address].tokensBought - totalTokensUsed(voterInfo[_address].tokensUsedPerCandidate);
     if (availableTokens < votesInTokens) throw;
 
-    votesReceived[candidate] += votesInTokens;
+    Eventos[idEvento].votesReceived[candidate] += votesInTokens;
+    Eventos[idEvento].totalVotes += votesInTokens;
 
     // Store how many tokens were used for this candidate
     voterInfo[_address].tokensUsedPerCandidate[index] += votesInTokens;
@@ -92,7 +110,8 @@ contract Voting {
     return totalUsedTokens;
   }
 
-  function indexOfCandidate(bytes32 candidate) constant returns (uint) {
+  function indexOfCandidate(uint idEvento, bytes32 candidate) constant returns (uint) {
+     bytes32[] candidateList = Eventos[idEvento].candidateList; 
     for(uint i = 0; i < candidateList.length; i++) {
       if (candidateList[i] == candidate) {
         return i;
@@ -101,27 +120,31 @@ contract Voting {
     return uint(-1);
   }
 
+
+ function indexOfmaxVotes(uint idEvento) constant returns (uint) {
+     uint max = Eventos[idEvento].maxAllowedVotes; 
+     uint total = Eventos[idEvento].totalVotes; 
+     if(max == 0) {
+       return 1;
+     }
+     if(total >= max) {
+       return uint(-1);
+     }
+       return 1;
+  }
+
   /* This function is used to purchase the tokens. Note the keyword 'payable'
    below. By just adding that one keyword to a function, your contract can
    now accept Ether from anyone who calls this function. Accepting money can
    not get any easier than this!
    */
 
-  function createVoter(bytes32 _name,bytes32 _password, bytes32 _email, address _adress) {
-    voterInfo[_adress].name = _name;
-    voterInfo[_adress].password = _password;
+  function createVoter(bytes32 _email, address _adress, uint votes) {
     voterInfo[_adress].email = _email;
     voterInfo[_adress].voterAddress = _adress;
-    voterInfo[_adress].tokensBought += 1;
+    voterInfo[_adress].tokensBought += votes;
     balanceTokens += 1;
   }
-
-  /*function buy() payable returns (uint) {
-    voterInfo[msg.sender].voterAddress = msg.sender;
-    voterInfo[msg.sender].tokensBought += msg.value;
-    balanceTokens += msg.value;
-    return msg.value;
-  }*/
 
   function tokensSold() constant returns (uint) {
     return totalTokens - balanceTokens;
@@ -142,7 +165,8 @@ contract Voting {
     account.transfer(this.balance);
   }
 
-  function allCandidates() constant returns (bytes32[]) {
+  function allCandidates(uint idEvento) constant returns (bytes32[]) {
+     bytes32[] candidateList = Eventos[idEvento].candidateList; 
     return candidateList;
   }
 
