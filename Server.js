@@ -180,17 +180,30 @@ app.post('/tokenPrice', (req,res) => {
             res.status(200).end(JSON.stringify(web3.fromWei(v),null,2));
         });
     });
-})
+});
 
-app.post('/Eventos', (req,res) => {    
+app.post('/getEvento', (req,res) => {    
     Voting.deployed().then(function(contractInstance) {
-        console.log('--------Contrato vivo---------'+ req.body.password)
+        console.log('--------Contrato vivo---------'+ req.body.idEvento)
         contractInstance.Eventos.call(req.body.idEvento).then(function(v) {
             res.setHeader('Content-Type','text/json'),
             res.status(200).end(JSON.stringify(v,null,2));
         });
     });
-})
+});
+
+app.post('/getEventos', (req,res) => {    
+    Voting.deployed().then(function(contractInstance) {
+        contractInstance.Eventos().then(function(v) {
+             var eventos = [];  
+            for (var index = 0; index < v.length; index++) {
+                eventos[index] = web3.toUtf8(v[index]);                
+            }
+            res.setHeader('Content-Type','text/json'),
+            res.status(200).end(JSON.stringify(eventos,null,2));
+        });
+    });
+});
 
 app.post('/getBalance', (req,res) => {    
     Voting.deployed().then(function(contractInstance) {
@@ -199,7 +212,7 @@ app.post('/getBalance', (req,res) => {
             res.status(200).end(JSON.stringify(web3.fromWei(result),null,2));
         });
     });
-})
+});
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {

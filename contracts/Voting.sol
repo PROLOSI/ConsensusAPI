@@ -44,6 +44,7 @@ contract Voting {
   uint public totalTokens; // Total no. of tokens available for this election
   uint public balanceTokens; // Total no. of tokens still available for purchase
   uint public tokenPrice; // Price per token
+  uint public totalEventos; // Price per token
 
   /* When the contract is deployed on the blockchain, we will initialize
    the total number of tokens for sale, cost per token and all the candidates
@@ -56,6 +57,19 @@ contract Voting {
      Eventos[idEvento].IdEvento = idEvento;
      Eventos[idEvento].name = name;
      Eventos[idEvento].maxAllowedVotes = maxVotes;
+     totalEventos += 1;
+  }
+
+  function getEvento(uint idEvento) constant returns (bytes32 name, bytes32[] candidates) {
+    return (Eventos[idEvento].name, Eventos[idEvento].candidateList);
+  }
+
+  function getEventos() constant returns (bytes32[] candidates) {
+    bytes32[] eventos;
+    for(uint i = 0; i < totalEventos-1; i++) {
+        eventos.push(Eventos[i].name);
+      }
+    return eventos;
   }
 
   function addCandidate(uint idEvento, bytes32 name) {  
