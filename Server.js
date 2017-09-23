@@ -182,6 +182,15 @@ app.post('/tokenPrice', (req,res) => {
     });
 })
 
+app.post('/Eventos', (req,res) => {    
+    Voting.deployed().then(function(contractInstance) {
+        contractInstance.Eventos.call().then(function(v) {
+            res.setHeader('Content-Type','text/json'),
+            res.status(200).end(JSON.stringify(v,null,2));
+        });
+    });
+})
+
 app.post('/getBalance', (req,res) => {    
     Voting.deployed().then(function(contractInstance) {
         web3.eth.getBalance(contractInstance.address, function(error, result) {
