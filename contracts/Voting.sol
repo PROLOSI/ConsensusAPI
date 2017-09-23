@@ -166,8 +166,7 @@ contract Voting {
   }
 
   function allCandidates(uint idEvento) constant returns (bytes32[]) {
-     bytes32[] candidateList = Eventos[idEvento].candidateList; 
-    return candidateList;
+     return Eventos[idEvento].candidateList;
   }
 
 }
