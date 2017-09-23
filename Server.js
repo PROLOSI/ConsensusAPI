@@ -136,7 +136,7 @@ app.post('/addEvento', (req,res) => {
 
 app.post('/newAccount', (req,res) => {    
     Voting.deployed().then(function(contractInstance) {
-        console.log('--------Contrato vivo---------'+ req.body.passwor)
+        console.log('--------Contrato vivo---------'+ req.body.password)
         web3.personal.newAccount(req.body.password, function(error, address) {
             web3.personal.unlockAccount(address, req.body.password, function(error, result) {
             res.setHeader('Content-Type','text/json'),
@@ -184,7 +184,8 @@ app.post('/tokenPrice', (req,res) => {
 
 app.post('/Eventos', (req,res) => {    
     Voting.deployed().then(function(contractInstance) {
-        contractInstance.Eventos.call().then(function(v) {
+        console.log('--------Contrato vivo---------'+ req.body.password)
+        contractInstance.Eventos.call(req.body.idEvento).then(function(v) {
             res.setHeader('Content-Type','text/json'),
             res.status(200).end(JSON.stringify(v,null,2));
         });
